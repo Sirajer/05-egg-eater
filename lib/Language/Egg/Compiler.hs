@@ -128,6 +128,15 @@ compileEnv env (Tuple es _)      = tupleAlloc (length es)
                                  ++ tupleCopy env es 1
                                  ++ [IMov (Reg EBX) (Const 0), IMov ((tupleaddr (length es)) + 1) (Reg EBX)]
                                  ++ setTag EAX TTuple
+compileEnv env (GetItem vE vI _) = assertType env TTuple
+                                 ++ [ IMov (Reg EAX) (immArg env vE) ]
+                                 ++ unsetTag EAX TTuple
+                                 ++ [ IMov (Reg ECX) (immArg env vI)
+                                 , ISar (Reg ECX) (Const 1)
+                                 , IAdd (Reg ECX) (Const 1)
+                                 , IMov (Reg EAX)  (Sized DWordPtr (RegIndex EAX ECX))]
+
+compileEnv env (App f vs _)      = call (Builtin f) (param env <$> vs)
 
 tupleAlloc :: Int -> [Instruction]
 tupleAlloc  l = [ IMov (Reg EAX) (Reg ESI)
@@ -167,18 +176,10 @@ mov eax, v + 4 *  ecx???
 something else i didn't catch-}
 
 --ask what is vE vI
-compileEnv env (GetItem vE vI _) = assertType env TTuple
-                                 ++ [ IMov (Reg EAX) (immArg env vE) ]
-                                 ++ unsetTag EAX TTuple
-                                 ++ [ IMov (Reg ECX) (immArg env vI)
-                                 , ISar (Reg ECX) (Const 1)
-                                 , IAdd (Reg ECX) (Const 1)
-                                 , IMov (Reg EAX)  (Sized DWordPtr (RegIndex EAX ECX))]
 
-unsetTag :: Register -> Ty -> Asm
-unsetTag r ty = ISub (Reg EAX) (typeTag ty)
 
-compileEnv env (App f vs _)      = call (Builtin f) (param env <$> vs)
+unsetTag :: Reg -> Ty -> [Instruction]
+unsetTag r ty = [ISub (Reg EAX) (typeTag ty)]
 
 compileImm :: Env -> IExp -> Instruction
 compileImm env v = IMov (Reg EAX) (immArg env v)
@@ -373,7 +374,7 @@ instance Repr Int where
 instance Repr Integer where
   repr n = Const (fromIntegral (shift n 1))
 
-setTag :: Register -> Ty -> Asm
+setTag :: Reg -> Ty -> [Instruction]
 setTag r ty = [ IAdd (Reg r) (typeTag ty) ]
 
 typeTag :: Ty -> Arg
