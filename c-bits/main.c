@@ -75,6 +75,7 @@ int error_index_too_large(int v){
 }
 */
 
+
 int is_number(int v){
   return ((v & 1) == 0);
 }
@@ -99,7 +100,19 @@ void print_boolean(int val){
 }
 
 void print_tuple(int val){
-  printf("TBD:tuple");
+  int * valp = (int *) (val - 1);
+  int length = (*valp) >> 1;
+  printf("(");
+  //start loop
+  for (int i = 1; i <= size, i++){
+    print_val(valp[i]);
+    //exit loop if end
+    if (i == size)
+      break;
+    printf(",");
+  }
+  //end loop
+  printf(")");
 }
 
 int print_val(int val) {

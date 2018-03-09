@@ -124,9 +124,59 @@ compileEnv env (If v e1 e2 l)    = assertType env v TBoolean
     i1s                          = compileEnv env e1
     i2s                          = compileEnv env e2
 
-compileEnv env (Tuple es _)      = error "TBD:compileEnv:Tuple"
+compileEnv env (Tuple es _)      = tupleAlloc (length es)
+                                 ++ tupleCopy env es 1
+                                 ++ [IMov (Reg EBX) (Const 0), IMov ((tupleaddr (length es)) + 1) (Reg EBX)]
+                                 ++ setTag EAX TTuple
 
-compileEnv env (GetItem vE vI _) = error "TBD:compileEnv:GetItem"
+tupleAlloc :: Int -> [Instruction]
+tupleAlloc  l = [ IMov (Reg EAX) (Reg ESI)
+                , IAdd (Reg ESI) (Const (4 * i)  --TODO:: MISSING A A STEP?
+                , IMov (Reg EBX) (Const l)
+                , IMul (Reg EBX) (Const 2)       --TODO::??
+                , IMov (tupleAddr 0) (Reg EBX)
+                ]
+  where
+    i  | (l+ 1) `mod` 2 == 0 = (l + 1)
+       | otherwise = (l + 2)
+
+tupleCopy :: env -> [Arg] -> [Instruction]
+tupleCopy env [] i = []
+tupleCopy env (a:aa) i = [ IMov (Reg EBX) (immArg env a) 
+                       , IMov (tupleAddr i) (Reg EBX)
+                       ] ++ tupleCopy env aa l
+  where
+    l = i + 1
+
+
+tupleAddr fld = Sized DWordPtr (RegOffset (4 * fld) EAX)
+{-
+fieldOffset :: Field -> Int
+fieldOffset First = 0
+fieldOffset Second = 1
+
+-}
+{- From lecture:
+mov ebx, <v1>
+sub ebx, 1
+mov ecx, v2
+isht ecx, 1
+mov eac, ebx
+cmp eax, ecx
+mov eax, v + 4 *  ecx???
+something else i didn't catch-}
+
+--ask what is vE vI
+compileEnv env (GetItem vE vI _) = assertType env TTuple
+                                 ++ [ IMov (Reg EAX) (immArg env vE) ]
+                                 ++ unsetTag EAX TTuple
+                                 ++ [ IMov (Reg ECX) (immArg env vI)
+                                 , ISar (Reg ECX) (Const 1)
+                                 , IAdd (Reg ECX) (Const 1)
+                                 , IMov (Reg EAX)  (Sized DWordPtr (RegIndex EAX ECX))]
+
+unsetTag :: Register -> Ty -> Asm
+unsetTag r ty = ISub (Reg EAX) (typeTag ty)
 
 compileEnv env (App f vs _)      = call (Builtin f) (param env <$> vs)
 
@@ -149,9 +199,18 @@ compileBind env (x, e) = (env', is)
 compilePrim1 :: Tag -> Env -> Prim1 -> IExp -> [Instruction]
 compilePrim1 l env Add1    v = compilePrim2 l env Plus  v (Number 1 l)
 compilePrim1 l env Sub1    v = compilePrim2 l env Minus v (Number 1 l)
-compilePrim1 l env IsNum   v = error "TBD:compilePrim1:isNum"
-compilePrim1 l env IsBool  v = error "TBD:compilePrim1:isBool"
-compilePrim1 l env IsTuple v = error "TBD:compilePrim1:isTuple"
+compilePrim1 l env IsNum   v = cmpType env v TNumber ++ [ IJe (BranchTrue i)
+                               , IMov (Reg EAX) (Const 0x7fffffff), IJmp (BranchDone i)
+                               , ILabel (BranchTrue i), IMov (Reg EAX) (Const -1)
+                               , ILabel (BranchDone i) ]
+compilePrim1 l env IsBool  v = cmpType env v TBoolean ++ [ IJe (BranchTrue i)
+                               , IMov (Reg EAX) (Const 0x7fffffff), IJmp (BranchDone i)
+                               , ILabel (BranchTrue i), IMov (Reg EAX) (Const -1)
+                               , ILabel (BranchDone i) ]
+compilePrim1 l env IsTuple v = cmpType env v TTuple ++  [ IJe (BranchTrue i)
+                               , IMov (Reg EAX) (Const 0x7fffffff), IJmp (BranchDone i)
+                               , ILabel (BranchTrue i), IMov (Reg EAX) (Const -1)
+                               , ILabel (BranchDone i) ]
 compilePrim1 _ env Print   v = call (Builtin "print") [param env v]
 
 compilePrim2 :: Tag -> Env -> Prim2 -> IExp -> IExp -> [Instruction]
@@ -313,6 +372,9 @@ instance Repr Int where
 
 instance Repr Integer where
   repr n = Const (fromIntegral (shift n 1))
+
+setTag :: Register -> Ty -> Asm
+setTag r ty = [ IAdd (Reg r) (typeTag ty) ]
 
 typeTag :: Ty -> Arg
 typeTag TNumber   = HexConst 0x00000000
