@@ -143,7 +143,8 @@ tupleAlloc  l = [ IMov (Reg EAX) (Reg ESI)
                 , IMov (Sized DWordPtr (RegOffset 0 EAX)) (repr l)
                 , IAdd (Reg ESI) (Const (4 * i))  --TODO:: MISSING A A STEP? ^
                 , IMov (Reg EBX) (Const l)
-                , IMul (Reg EBX) (Const 2)       --TODO::??
+                , IShl (Reg EBX) (Const 1)
+                --, IMul (Reg EBX) (Const 2)       --TODO::??
                 , IMov (tupleAddr 0) (Reg EBX)
                 ]
   where
