@@ -140,7 +140,8 @@ compileEnv env (App f vs _)      = call (Builtin f) (param env <$> vs)
 
 tupleAlloc :: Int -> [Instruction]
 tupleAlloc  l = [ IMov (Reg EAX) (Reg ESI)
-                , IAdd (Reg ESI) (Const (4 * i))  --TODO:: MISSING A A STEP?
+                , IMov (Sized DWordPtr (RegOffset 0 EAX)) (repr l)
+                , IAdd (Reg ESI) (Const (4 * i))  --TODO:: MISSING A A STEP? ^
                 , IMov (Reg EBX) (Const l)
                 , IMul (Reg EBX) (Const 2)       --TODO::??
                 , IMov (tupleAddr 0) (Reg EBX)
