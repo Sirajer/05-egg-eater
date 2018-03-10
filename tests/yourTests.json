@@ -3,29 +3,24 @@
 		"name"   : "idksry00"   , 
 		"code" : "let addTwo = (4, 5) in t == t", 
 		"result" : { "value" : "true" } 
-	}
+	},
 	{
 		"name"   : "idksry01"   , 
 		"code" : "let addTwo = (4, 5) in t == t", 
 		"result" : { "value" : "true" } 
-	}
+	},
 	{
 		"name"   : "idksry02"   , 
 		"code" : "let addTwo = (4, 5) in t == t", 
 		"result" : { "value" : "true" } 
-	}
+	},
 	{
 		"name"   : "idksry03"   , 
 		"code" : "let addTwo = (4, 5) in t == t", 
 		"result" : { "value" : "true" } 
-	}
+	},
 	{
 		"name"   : "idksry04"   , 
-		"code" : "let addTwo = (4, 5) in t == t", 
-		"result" : { "value" : "true" } 
-	}
-	{
-		"name"   : "idksry05"   , 
 		"code" : "let addTwo = (4, 5) in t == t", 
 		"result" : { "value" : "true" } 
 	}
