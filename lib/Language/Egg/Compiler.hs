@@ -126,15 +126,15 @@ compileEnv env (If v e1 e2 l)    = assertType env v TBoolean
 
 compileEnv env (Tuple es _)      = tupleAlloc (length es)
                                  ++ tupleCopy env es 1
-                                 ++ [IMov (Reg EBX) (Const 0), IMov ((tupleaddr (length es)) + 1) (Reg EBX)]
+                                 ++ [IMov (Reg EBX) (Const 0), IMov ((tupleAddr (length es)) + 1) (Reg EBX)]
                                  ++ setTag EAX TTuple
-compileEnv env (GetItem vE vI _) = assertType env TTuple
+compileEnv env (GetItem vE vI _) = assertType env vE TTuple
                                  ++ [ IMov (Reg EAX) (immArg env vE) ]
                                  ++ unsetTag EAX TTuple
-                                 ++ [ IMov (Reg ECX) (immArg env vI)
-                                 , ISar (Reg ECX) (Const 1)
-                                 , IAdd (Reg ECX) (Const 1)
-                                 , IMov (Reg EAX)  (Sized DWordPtr (RegIndex EAX ECX))]
+                                 ++ [ IMov (Reg EBX) (immArg env vI)
+                                 , ISar (Reg EBX) (Const 1)
+                                 , IAdd (Reg EBX) (Const 1)
+                                 , IMov (Reg EAX)  (Sized DWordPtr (RegIndex EAX EBX))]
 
 compileEnv env (App f vs _)      = call (Builtin f) (param env <$> vs)
 
@@ -149,7 +149,7 @@ tupleAlloc  l = [ IMov (Reg EAX) (Reg ESI)
     i  | (l+ 1) `mod` 2 == 0 = (l + 1)
        | otherwise = (l + 2)
 
-tupleCopy :: env -> [Arg] -> [Instruction]
+tupleCopy :: env -> [Expr Tag] -> Integer ->[Instruction]
 tupleCopy env [] i = []
 tupleCopy env (a:aa) i = [ IMov (Reg EBX) (immArg env a) 
                        , IMov (tupleAddr i) (Reg EBX)
@@ -200,17 +200,20 @@ compileBind env (x, e) = (env', is)
 compilePrim1 :: Tag -> Env -> Prim1 -> IExp -> [Instruction]
 compilePrim1 l env Add1    v = compilePrim2 l env Plus  v (Number 1 l)
 compilePrim1 l env Sub1    v = compilePrim2 l env Minus v (Number 1 l)
-compilePrim1 l env IsNum   v = cmpType env v TNumber ++ [ IJe (BranchTrue i)
+compilePrim1 l env IsNum   v = let (_, i) = l in 
+                               cmpType env v TNumber ++ [ IJe (BranchTrue i)
                                , IMov (Reg EAX) (Const 0x7fffffff), IJmp (BranchDone i)
-                               , ILabel (BranchTrue i), IMov (Reg EAX) (Const -1)
+                               , ILabel (BranchTrue i), IMov (Reg EAX) (Const (-1))
                                , ILabel (BranchDone i) ]
-compilePrim1 l env IsBool  v = cmpType env v TBoolean ++ [ IJe (BranchTrue i)
+compilePrim1 l env IsBool  v = let (_, i) = l in 
+                               cmpType env v TBoolean ++ [ IJe (BranchTrue i)
                                , IMov (Reg EAX) (Const 0x7fffffff), IJmp (BranchDone i)
-                               , ILabel (BranchTrue i), IMov (Reg EAX) (Const -1)
+                               , ILabel (BranchTrue i), IMov (Reg EAX) (Const (-1))
                                , ILabel (BranchDone i) ]
-compilePrim1 l env IsTuple v = cmpType env v TTuple ++  [ IJe (BranchTrue i)
+compilePrim1 l env IsTuple v = let (_, i) = l in 
+                               cmpType env v TTuple ++  [ IJe (BranchTrue i)
                                , IMov (Reg EAX) (Const 0x7fffffff), IJmp (BranchDone i)
-                               , ILabel (BranchTrue i), IMov (Reg EAX) (Const -1)
+                               , ILabel (BranchTrue i), IMov (Reg EAX) (Const (-1))
                                , ILabel (BranchDone i) ]
 compilePrim1 _ env Print   v = call (Builtin "print") [param env v]
 
