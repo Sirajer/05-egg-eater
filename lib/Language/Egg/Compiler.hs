@@ -126,7 +126,7 @@ compileEnv env (If v e1 e2 l)    = assertType env v TBoolean
 
 compileEnv env (Tuple es _)      = tupleAlloc (length es)
                                  ++ tupleCopy env es 1
-                                 ++ [IMov (Reg EBX) (Const 0), IMov ((tupleAddr (length es)) + 1) (Reg EBX)]
+                                 ++ [IMov (Reg EBX) (Const 0), IMov (tupleAddr ((length es) + 1)) (Reg EBX)]
                                  ++ setTag EAX TTuple
 compileEnv env (GetItem vE vI _) = assertType env vE TTuple
                                  ++ [ IMov (Reg EAX) (immArg env vE) ]
@@ -149,7 +149,7 @@ tupleAlloc  l = [ IMov (Reg EAX) (Reg ESI)
     i  | (l+ 1) `mod` 2 == 0 = (l + 1)
        | otherwise = (l + 2)
 
-tupleCopy :: env -> [Expr Tag] -> Integer ->[Instruction]
+tupleCopy :: env -> [Expr Tag] -> Int ->[Instruction]
 tupleCopy env [] i = []
 tupleCopy env (a:aa) i = [ IMov (Reg EBX) (immArg env a) 
                        , IMov (tupleAddr i) (Reg EBX)
