@@ -104,7 +104,7 @@ void print_tuple(int val){
   int length = (*valp) >> 1;
   printf("(");
   //start loop
-  for (int i = 1; i <= length, i++){
+  for (int i = 1; i <= length; i++){
     print_val(valp[i]);
     //exit loop if end
     if (i == length)
