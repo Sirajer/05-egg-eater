@@ -149,7 +149,7 @@ tupleAlloc  l = [ IMov (Reg EAX) (Reg ESI)
     i  | (l+ 1) `mod` 2 == 0 = (l + 1)
        | otherwise = (l + 2)
 
-tupleCopy :: env -> [Expr Tag] -> Int ->[Instruction]
+tupleCopy :: Env -> [Expr Tag] -> Int ->[Instruction]
 tupleCopy env [] i = []
 tupleCopy env (a:aa) i = [ IMov (Reg EBX) (immArg env a) 
                        , IMov (tupleAddr i) (Reg EBX)
